@@ -29,7 +29,11 @@ template <typename T> class Camera
     public: 
         enum State {OFF, ON, READY, RECORDING, ERROR};
         Camera(const image_size_t sz) : buf_(new T[sz.height * sz.width * sz.channels]), image_size_(sz) {};
-        ~Camera(void);
+        ~Camera(void) {
+            DeInitialize();
+            ClearMemory();
+            PowerOff();
+        };
         virtual void PowerOn(void) = 0;
         virtual void PowerOff(void) = 0;
         virtual void Initialize(void) = 0;
