@@ -23,10 +23,9 @@ extern "C" {
 #define CNN_IMG_SIZE 32
 #define resolution RESOLUTION_R160x120
 
-image_size_t img_sz = {IMG_HEIGHT, IMG_WIDTH, NUM_IN_CH};
-Camera camera = BSP_Camera(img_sz, resolution);
+const int SLEEP_INTERVAL = 1000; //milliseconds
 
-uint8_t* camera_buffer = camera.GetOutput().data;
+image_size_t img_sz = {IMG_HEIGHT, IMG_WIDTH, NUM_IN_CH};
 uint8_t resized_buffer[NUM_OUT_CH*CNN_IMG_SIZE*CNN_IMG_SIZE];
 char lcd_output_string[50];
 LCD_DISCO_F746NG lcd;
@@ -94,6 +93,9 @@ int main()
   lcd.Clear(LCD_COLOR_WHITE);
   HAL_Init();
   wait_ms(100);
+  
+  Camera camera = BSP_Camera(img_sz, resolution);
+  uint8_t* camera_buffer = camera.GetOutput().data;
   camera.PowerOn();
   camera.Initialize();
   if( camera.state == CAMERA::READY ) {
@@ -113,6 +115,7 @@ int main()
     // run neural network 
     sprintf(lcd_output_string,"Original vs. scaled images");
     lcd.DisplayStringAt(0, LINE(8), (uint8_t *)lcd_output_string, CENTER_MODE);
+    std::this_thread::sleep_for(std::chrono::milliseconds(SLEEP_FOR))
   }
 }
 
