@@ -1,19 +1,17 @@
-#include "mbed.h"
-// #include "stm32746g_discovery_camera.h"
 #include "BSP_Camera.h"
+#include "Camera.h"
 #include "LCD_DISCO_F746NG.h"
 #include "stm32f7xx_hal_dcmi.h"
 
-extern "C" {
-  //defined in stm32746g_discovery_camera.c
-  extern DCMI_HandleTypeDef hDcmiHandler;
-  void DCMI_IRQHandler(void) {
-      HAL_DCMI_IRQHandler(&hDcmiHandler);
-  }
-  void DMA2_Stream1_IRQHandler(void) {
-      HAL_DMA_IRQHandler(hDcmiHandler.DMA_Handle);
-  }
-}
+#include "mbed.h"
+#include "rtos.h"
+/*
+ * This is a hack to enable std::this_thread::sleep_for(). 
+ * If not included, std::this_thread::sleep_for() throws compile error.
+ * See https://stackoverflow.com/questions/12523122/what-is-glibcxx-use-nanosleep-all-about
+ */
+
+const int SLEEP_INTERVAL = 1000; //milliseconds
 
 // 2 input channels, as input is in RGB565 format
 #define NUM_IN_CH 2
@@ -21,9 +19,7 @@ extern "C" {
 #define IMG_WIDTH 160
 #define IMG_HEIGHT 120
 #define CNN_IMG_SIZE 32
-#define resolution RESOLUTION_R160x120
 
-const int SLEEP_INTERVAL = 1000; //milliseconds
 
 image_size_t img_sz = {IMG_HEIGHT, IMG_WIDTH, NUM_IN_CH};
 uint8_t resized_buffer[NUM_OUT_CH*CNN_IMG_SIZE*CNN_IMG_SIZE];
@@ -92,30 +88,30 @@ int main()
   pc.baud(115200);
   lcd.Clear(LCD_COLOR_WHITE);
   HAL_Init();
-  wait_ms(100);
-  
-  Camera camera = BSP_Camera(img_sz, resolution);
-  uint8_t* camera_buffer = camera.GetOutput().data;
+  ThisThread::sleep_for(100);
+
+  BSP_Camera camera = BSP_Camera(img_sz, BSP_Camera::DEFAULT_RESOLUTION);
+  const image_t<uint8_t> output = camera.GetOutput();
+  uint8_t* const camera_buffer = output.data;
   camera.PowerOn();
   camera.Initialize();
-  if( camera.state == CAMERA::READY ) {
+  if(camera.GetState() == Camera<uint8_t>::READY ) {
       pc.printf("Camera init - SUCCESS\r\n");
   } else {
       pc.printf("Camera init - FAILED\r\n");
       lcd.Clear(LCD_COLOR_RED);
   }
-  wait_ms(100);
-
+  ThisThread::sleep_for(100);
 
   while(1) {
-    camera.StartRecording();
+    camera.Capture();
     resize_rgb565in_rgb888out(camera_buffer, resized_buffer);
     display_image_rgb888(CNN_IMG_SIZE, CNN_IMG_SIZE, resized_buffer);
     display_image_rgb565(IMG_WIDTH, IMG_HEIGHT, camera_buffer);
     // run neural network 
     sprintf(lcd_output_string,"Original vs. scaled images");
     lcd.DisplayStringAt(0, LINE(8), (uint8_t *)lcd_output_string, CENTER_MODE);
-    std::this_thread::sleep_for(std::chrono::milliseconds(SLEEP_FOR))
+    ThisThread::sleep_for(SLEEP_INTERVAL);
   }
 }
 

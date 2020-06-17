@@ -28,10 +28,7 @@ template <typename T> class Camera
 
     public: 
         enum State {OFF, ON, READY, RECORDING, ERROR};
-        Camera(const image_size_t sz) {
-            this->buf_ = new T[sz.height * sz.width * sz.channels];
-            this->output_ = {sz, this->buf_}; 
-        };
+        Camera(const image_size_t sz) : buf_(new T[sz.height * sz.width * sz.channels]), image_size_(sz) {};
         ~Camera(void);
         virtual void PowerOn(void) = 0;
         virtual void PowerOff(void) = 0;
@@ -40,11 +37,28 @@ template <typename T> class Camera
         virtual void Capture(void) = 0;
         virtual void StartRecording(void) = 0;
         virtual void StopRecording(void) = 0;
-        virtual void HandleError(void);
-        
-        void ClearMemory(void);
-        const image_t<T> GetOutput(void) const;
-        const State GetState(void);
+       
+        /*
+         * Methods of a class template must be implemented in header
+         */
+        void HandleError(void) {
+            if (this->state_ != ERROR) 
+            {
+                return;
+            }
+            PowerOff();
+            PowerOn();
+        };
+        void ClearMemory(void) {
+            delete this->buf_;
+        };
+        const image_t<T> GetOutput(void) const {
+            const image_t<T> output = {this->image_size_, this->buf_};
+            return output;
+        };
+        const State GetState(void) const {
+            return this->state_;
+        };
         
 
     protected:
@@ -54,6 +68,6 @@ template <typename T> class Camera
         T* const buf_;
         // output_ shape conforms to specified size (H, W, C)
         // At every time step, internal buffer will be updated.
-        const image_t<T> output_;
+        const image_size_t image_size_;
 };
 # endif
