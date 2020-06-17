@@ -11,22 +11,18 @@
 /*
  * Camera will be implemented as a finite-state automaton. 
  */
-typedef struct image_size_t
-{
+typedef struct {
     size_t height;
     size_t width;
     size_t channels;
-} image_size;
+} image_size_t;
 
-template <typename T>
-struct image
-{
+template <typename T> struct image_t {
     image_size_t sz;
-    std::vector<T>& data; // An array containing flattened image data
+    T* data; // An array containing flattened image data
 };
 
-template <typename T>
-class Camera
+template <typename T> class Camera
 {
     /* OFF: The camera is unpowered. 
      * ON: The camera has been turned on. 
@@ -34,23 +30,31 @@ class Camera
      * RECORDING: The camera is currently recording. 
      * ERROR: The camera is in a state of error.
      */
-    enum State {OFF, ON, READY, RECORDING, ERROR};
 
     public: 
+        enum State {OFF, ON, READY, RECORDING, ERROR};
         Camera(image_size_t size);
+        ~Camera(void);
         virtual void PowerOn(void) = 0;
+        virtual void PowerOff(void) = 0;
         virtual void Initialize(void) = 0;
+        virtual void DeInitialize(void) = 0;
+        virtual void Capture(void) = 0;
         virtual void StartRecording(void) = 0;
         virtual void StopRecording(void) = 0;
-        virtual void PowerOff(void) = 0;
-        const image<T> GetOutput(void) const;
-    
+        virtual void HandleError(void);
+        
+        const image_t<T> GetOutput(void) const;
+        const State GetState(void);
+        
+
     protected:
         // Current state of the camera
         Camera::State state_;
-        std::vector<T> buf_;
-        // output_ shape is (H, W, C)
+        // Raw images are read into buf_. The raw output may require some pre-processing. 
+        T* buf_;
+        // output_ shape conforms to specified size (H, W, C)
         // At every time step, internal buffer will be updated.
-        const image<T> output_;
+        const image_t<T> output_;
 };
 # endif
