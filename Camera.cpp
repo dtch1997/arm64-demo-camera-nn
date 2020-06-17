@@ -1,10 +1,13 @@
 #include "Camera.h"
-#include <tuple>
 
-Camera::Camera(std::tuple<int> output_size) {
-    this->output_size_ = output_size; 
+template <typename T> 
+Camera<T>::Camera(image_size_t sz) {
+    // This should ensure that vector never gets reallocated
+    this->buf_.reserve(sz.height * sz.width * sz.channels);
+    this->output_ = {sz, this->buf_};
 }
 
-const image& Camera::GetOutput() const {
+template <typename T>
+const image<T> Camera<T>::GetOutput() const {
     return this->output_;
 }

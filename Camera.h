@@ -4,13 +4,28 @@
 # include <vector>
 # include <tuple>
 
-typedef std::vector<char> row;
-typedef std::vector<row> layer;
-typedef std::vector<layer> image;
+//typedef std::vector<char> row;
+//typedef std::vector<row> layer;
+//typedef std::vector<layer> image;
 
 /*
  * Camera will be implemented as a finite-state automaton. 
  */
+typedef struct image_size_t
+{
+    size_t height;
+    size_t width;
+    size_t channels;
+} image_size;
+
+template <typename T>
+struct image
+{
+    image_size_t sz;
+    std::vector<T>& data; // An array containing flattened image data
+};
+
+template <typename T>
 class Camera
 {
     /* OFF: The camera is unpowered. 
@@ -22,20 +37,20 @@ class Camera
     enum State {OFF, ON, READY, RECORDING, ERROR};
 
     public: 
-        Camera(std::tuple<int> output_size);
+        Camera(image_size_t size);
         virtual void PowerOn(void) = 0;
         virtual void Initialize(void) = 0;
         virtual void StartRecording(void) = 0;
         virtual void StopRecording(void) = 0;
         virtual void PowerOff(void) = 0;
-        const image& GetOutput(void) const;
+        const image<T> GetOutput(void) const;
     
     protected:
         // Current state of the camera
         Camera::State state_;
+        std::vector<T> buf_;
         // output_ shape is (H, W, C)
         // At every time step, internal buffer will be updated.
-        mutable image output_;
-        std::tuple<int> output_size_;
+        const image<T> output_;
 };
 # endif
